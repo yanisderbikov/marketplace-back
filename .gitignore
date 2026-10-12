@@ -1,0 +1,26 @@
+# build output
+target/
+
+# env: любые .env-файлы с реальными значениями, кроме образца
+.env
+.env.*
+.env-*
+!.env.example
+
+# дампы и логи
+*.dump
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# Claude Code
+.claude/
