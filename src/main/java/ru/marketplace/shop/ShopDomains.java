@@ -9,8 +9,10 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Правила своего домена витрины. Мерчант вставляет домен как угодно («https://Магазин.рф/», «www.shop.ru»),
- * храним один канонический вид: punycode в нижнем регистре, без схемы, пути, порта, точки на конце и www.
+ * Правила своего домена витрины. Мерчант вставляет домен как угодно («https://Магазин.рф/», «WWW.shop.ru/»),
+ * храним один канонический вид: punycode в нижнем регистре, без схемы, пути, порта и точки на конце.
+ * www не отбрасываем: именно этот хост регистрируется на гейтвее (у корня домена CNAME поддерживают
+ * не все регистраторы, поэтому www.shop.ru — частый выбор), а вариант с/без www резолвится в тот же магазин.
  * Домен платформы (хост FRONT_URL) и его поддомены занять нельзя — на них живёт сама платформа.
  */
 @Component
@@ -57,9 +59,6 @@ public class ShopDomains {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Некорректный домен");
         }
-        if (ascii.startsWith(WWW)) {
-            ascii = ascii.substring(WWW.length());
-        }
         String problem = problem(ascii);
         if (problem != null) {
             throw new IllegalArgumentException(problem);
@@ -68,8 +67,8 @@ public class ShopDomains {
     }
 
     /**
-     * Хост из запроса (Host витрины, SNI у гейтвея) → домен, под которым магазин мог его сохранить.
-     * Без валидации: несуществующий домен просто не найдётся.
+     * Хост из запроса (Host витрины, SNI у гейтвея) → нормализованный ключ поиска (регистр, порт и точка
+     * на конце отброшены). Без валидации: несуществующий домен просто не найдётся.
      */
     public static String lookupKey(String host) {
         if (host == null) {
@@ -83,10 +82,12 @@ public class ShopDomains {
         if (value.endsWith(".")) {
             value = value.substring(0, value.length() - 1);
         }
-        if (value.startsWith(WWW)) {
-            value = value.substring(WWW.length());
-        }
         return value.isEmpty() || value.length() > MAX_LENGTH ? null : value;
+    }
+
+    /** Тот же домен с www и без: shop.ru ↔ www.shop.ru. */
+    public static String wwwVariant(String domain) {
+        return domain.startsWith(WWW) ? domain.substring(WWW.length()) : WWW + domain;
     }
 
     private String problem(String domain) {

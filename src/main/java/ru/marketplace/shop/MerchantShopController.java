@@ -19,6 +19,7 @@ import ru.marketplace.shop.dto.ShopCdekRequestDTO;
 import ru.marketplace.shop.dto.MerchantShopDTO;
 import ru.marketplace.shop.dto.ShopDesignRequestDTO;
 import ru.marketplace.shop.dto.ShopDomainRequestDTO;
+import ru.marketplace.domain.dto.ShopDomainDTO;
 import ru.marketplace.shop.dto.ShopImageRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentProviderRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentRequestDTO;
@@ -39,6 +40,7 @@ public class MerchantShopController {
 
     private final ShopService shopService;
     private final ShopImageService shopImageService;
+    private final ShopDomainService shopDomainService;
 
     @Operation(summary = "Создать магазин (онбординг)",
             description = "Название, адрес витрины и цвет. Адрес после создания не меняется. "
@@ -142,11 +144,21 @@ public class MerchantShopController {
     }
 
     @Operation(summary = "Привязать свой домен витрины",
-            description = "Витрина откроется на домене с корня, когда его DNS будет указывать на гейтвей платформы. "
-                    + "Пусто — отвязать. 400 — некорректный домен или домен платформы, 409 — домен у другого магазина",
+            description = "Домен подключается к гейтвею платформы, в ответе — DNS-записи, которые мерчант добавляет "
+                    + "у регистратора. Витрина откроется на домене с корня, когда записи появятся в DNS. Пусто — "
+                    + "отвязать. 400 — некорректный домен или домен платформы, 409 — домен у другого магазина, "
+                    + "502 — не удалось подключить домен (он не сохранён)",
             security = @SecurityRequirement(name = "Bearer"))
     @PutMapping("/domain")
-    public ResponseEntity<MerchantShopDTO> saveDomain(@Valid @RequestBody ShopDomainRequestDTO request) {
-        return ResponseEntity.ok(shopService.saveDomain(request));
+    public ResponseEntity<ShopDomainDTO> saveDomain(@Valid @RequestBody ShopDomainRequestDTO request) {
+        return ResponseEntity.ok(shopDomainService.save(request.getDomain()));
+    }
+
+    @Operation(summary = "Свой домен витрины: DNS-записи и статус",
+            description = "Что добавить у регистратора и видны ли уже записи; status NONE — домен не привязан",
+            security = @SecurityRequirement(name = "Bearer"))
+    @GetMapping("/domain")
+    public ResponseEntity<ShopDomainDTO> getDomain() {
+        return ResponseEntity.ok(shopDomainService.describe());
     }
 }

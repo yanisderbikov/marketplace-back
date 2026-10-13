@@ -82,6 +82,12 @@ Docker-образ: `docker build -t marketplace-back .` (сборка внутр
 | `PAYMENT_SECRETS_KEY` | `payment.secrets.key` | AES-256 ключ шифрования паролей терминалов в БД: base64 ровно от 32 байт (`openssl rand -base64 32`). Смена ключа = потеря сохранённых паролей |
 | `PAYMENT_ALLOWED_RETURN_HOSTS` | `payment.allowed-return-hosts` | Хосты, куда можно вернуть покупателя после оплаты, через запятую |
 | `PAYMENT_PENDING_CHECK_INTERVAL_MS` | `payment.pending-check.interval-ms` | Период поллера статусов неоплаченных заказов, мс |
+| `DOMAIN_PROVISIONER` | `domains.provisioner` | Как подключать свои домены витрин: `static` (свой сервер, записи из конфига) или `railway` (через Railway API) |
+| `DOMAIN_CNAME_TARGET` | `domains.static.cname-target` | static: куда мерчанту направить CNAME |
+| `DOMAIN_A_RECORD_IP` | `domains.static.a-record-ip` | static: IP гейтвея для корневых доменов (необязательно) |
+| `RAILWAY_API_TOKEN`, `RAILWAY_API_TOKEN_KIND` | `domains.railway.token`, `…token-kind` | railway: токен проекта и его вид (`project` / `account`) |
+| `RAILWAY_PROJECT_ID`, `RAILWAY_ENVIRONMENT_ID` | `domains.railway.project-id`, `…environment-id` | railway: подставляет сам Railway |
+| `RAILWAY_GATEWAY_SERVICE_ID`, `RAILWAY_GATEWAY_PORT` | `domains.railway.service-id`, `…target-port` | railway: сервис гейтвея и его порт |
 
 Константы предметной области заданы литералами в `application.properties`: срок кода входа 10 мин,
 повторная отправка не чаще раза в 60 с, 5 попыток, 20 запросов кода в час с одного IP; порт 8090.
@@ -128,8 +134,9 @@ Docker-образ: `docker build -t marketplace-back .` (сборка внутр
 | GET | `/api/merchant/analytics/sales?from=&to=` | мерчант | Отчёт продаж за дни `[from..to]` по Москве: заказы, штуки, сумма, разбивка по товарам |
 | GET | `/api/admin/shops` | супер-админ | Все магазины: владелец, товары, оплаченные заказы и выручка |
 | PUT | `/api/admin/shops/{id}/active` | супер-админ | `{ active }` — выключенный магазин: витрина 404, оформление заказа 409 |
-| PUT | `/api/merchant/shop/domain` | мерчант | `{ domain }` — свой домен витрины (схема, путь, порт и `www.` отбрасываются, кириллица → punycode); пусто — отвязать; некорректный или домен платформы (хост `FRONT_URL` и его поддомены) → 400, у другого магазина → 409 |
-| GET | `/api/public/domains/resolve?domain=` | все | `{ slug, domain }` включённого магазина с этим доменом (`www.`, порт и регистр не важны), иначе 404. Его зовут фронт на чужом домене и гейтвей (Caddy `on_demand_tls ask`) перед выпуском сертификата |
+| PUT | `/api/merchant/shop/domain` | мерчант | `{ domain }` → `ShopDomainDTO { domain, status, message, records[] }`: домен (схема, путь и порт отбрасываются, кириллица → punycode, `www.` сохраняется) подключается к гейтвею (`DOMAIN_PROVISIONER`), в ответе — DNS-записи для регистратора; пусто — отвязать; некорректный или домен платформы (хост `FRONT_URL` и его поддомены) → 400, домен или его вариант с/без www у другого магазина → 409, подключение не удалось → 502 (домен не сохранён) |
+| GET | `/api/merchant/shop/domain` | мерчант | `ShopDomainDTO`: записи и статус `NONE` / `PENDING` (ждём DNS) / `ACTIVE` / `ERROR` |
+| GET | `/api/public/domains/resolve?domain=` | все | `{ slug, domain }` включённого магазина с этим доменом (вариант с/без `www.`, порт и регистр не важны), иначе 404. Его зовут фронт на чужом домене и гейтвей (Caddy `on_demand_tls ask`) перед выпуском сертификата |
 | GET | `/api/public/shops` | все | Витрины: активные магазины хотя бы с одним активным товаром |
 | GET | `/api/public/shops/{slug}` | все | Магазин для витрины (`PublicShopDTO`); нет или выключен → 404 |
 | GET | `/api/public/shops/{slug}/products` | все | Активные товары витрины |

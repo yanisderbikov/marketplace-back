@@ -20,13 +20,13 @@ import ru.marketplace.shop.dto.DomainResolveDTO;
 @Tag(name = "PublicDomain", description = "Свои домены витрин")
 public class PublicDomainController {
 
-    private final ShopService shopService;
+    private final ShopDomainService shopDomainService;
 
     @Operation(summary = "Магазин по своему домену",
             description = "domain — хост как есть (регистр, порт, www не важны). Включённый магазин с этим "
                     + "доменом — 200 { slug, domain }; нет или магазин выключен — 404")
     @GetMapping("/resolve")
     public ResponseEntity<DomainResolveDTO> resolve(@RequestParam("domain") String domain) {
-        return ResponseEntity.ok(shopService.resolveDomain(domain));
+        return ResponseEntity.ok(shopDomainService.resolve(domain));
     }
 }

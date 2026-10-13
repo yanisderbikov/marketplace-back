@@ -19,7 +19,7 @@ public record MerchantShopDTO(
         String name,
         @Schema(description = "false — магазин выключен супер-админом: витрина отвечает 404") boolean active,
         @Schema(description = "Путь витрины на фронте", example = "/shop/candle-shop") String storefrontPath,
-        @Schema(description = "Свой домен витрины (punycode, без www)", nullable = true, example = "shop.example.ru")
+        @Schema(description = "Свой домен витрины (punycode)", nullable = true, example = "shop.example.ru")
         String customDomain,
         String brandColor,
         @Schema(nullable = true) String logoUrl,

@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @Schema(description = "Свой домен витрины")
 public class ShopDomainRequestDTO {
-    @Schema(description = "Домен, например shop.example.ru или магазин.рф (схема, путь и www отбрасываются); "
+    @Schema(description = "Домен, например shop.example.ru или магазин.рф (схема, путь и порт отбрасываются); "
             + "пусто — отвязать домен", nullable = true, example = "shop.example.ru")
     private String domain;
 }

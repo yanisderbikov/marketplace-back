@@ -6,6 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Магазин на своём домене")
 public record DomainResolveDTO(
         @Schema(example = "candle-shop") String slug,
-        @Schema(description = "Канонический домен магазина (без www)", example = "shop.example.ru") String domain
+        @Schema(description = "Домен магазина, как он сохранён", example = "shop.example.ru") String domain
 ) {
 }

@@ -32,6 +32,7 @@ import ru.marketplace.payment.dto.yookassa.YookassaReceipt;
 import ru.marketplace.repository.OrderRepository;
 import ru.marketplace.repository.ProductRepository;
 import ru.marketplace.repository.ShopRepository;
+import ru.marketplace.shop.ShopDomains;
 import ru.marketplace.shop.ShopPayment;
 import ru.marketplace.shop.ShopReadiness;
 import ru.marketplace.util.MoneyUtil;
@@ -526,7 +527,7 @@ class CheckoutServiceImpl implements CheckoutService {
         return url;
     }
 
-    /** Хосты платформы плюс свой домен магазина (и его www): витрина на своём домене возвращает покупателя туда же. */
+    /** Хосты платформы плюс свой домен магазина (с www и без): витрина на своём домене возвращает покупателя туда же. */
     static Set<String> returnHosts(Set<String> platformHosts, Shop shop) {
         String domain = shop.getCustomDomain();
         if (domain == null || domain.isBlank()) {
@@ -534,7 +535,7 @@ class CheckoutServiceImpl implements CheckoutService {
         }
         Set<String> hosts = new HashSet<>(platformHosts);
         hosts.add(domain);
-        hosts.add("www." + domain);
+        hosts.add(ShopDomains.wwwVariant(domain));
         return hosts;
     }
 

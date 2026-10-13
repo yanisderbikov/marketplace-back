@@ -1,13 +1,11 @@
 package ru.marketplace.shop;
 
 import ru.marketplace.shop.dto.CreateShopRequestDTO;
-import ru.marketplace.shop.dto.DomainResolveDTO;
 import ru.marketplace.shop.dto.MerchantShopDTO;
 import ru.marketplace.shop.dto.PublicShopCardDTO;
 import ru.marketplace.shop.dto.PublicShopDTO;
 import ru.marketplace.shop.dto.ShopCdekRequestDTO;
 import ru.marketplace.shop.dto.ShopDesignRequestDTO;
-import ru.marketplace.shop.dto.ShopDomainRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentProviderRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentRequestDTO;
 import ru.marketplace.shop.dto.ShopSettingsRequestDTO;
@@ -57,9 +55,4 @@ public interface ShopService {
     /** Включённый магазин для витрины; нет или выключен — 404. */
     PublicShopDTO getPublicShop(String slug);
 
-    /** Свой домен витрины: 400 — некорректный или домен платформы, 409 — занят другим магазином; пусто — отвязать. */
-    MerchantShopDTO saveDomain(ShopDomainRequestDTO request);
-
-    /** Включённый магазин по хосту запроса (www и порт не важны); нет или выключен — 404. */
-    DomainResolveDTO resolveDomain(String host);
 }

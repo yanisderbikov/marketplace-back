@@ -46,7 +46,7 @@ public class Shop {
     private String name;
 
     /**
-     * Свой домен витрины (punycode, нижний регистр, без www) — витрина открывается на нём с корня.
+     * Свой домен витрины (punycode, нижний регистр) — витрина открывается на нём с корня.
      * null — только /shop/{slug} на домене платформы
      */
     @Column(name = "custom_domain", unique = true, length = 253)
