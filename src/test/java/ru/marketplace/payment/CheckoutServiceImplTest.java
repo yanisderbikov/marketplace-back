@@ -787,4 +787,16 @@ class CheckoutServiceImplTest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
         assertEquals("Заказ не найден", e.getReason());
     }
+
+    @Test
+    void returnHostsIncludeShopCustomDomainAndItsWww() {
+        Shop shop = new Shop();
+        assertEquals(Set.of("market.example"), CheckoutServiceImpl.returnHosts(Set.of("market.example"), shop));
+
+        shop.setCustomDomain("shop.example.ru");
+        Set<String> hosts = CheckoutServiceImpl.returnHosts(Set.of("market.example"), shop);
+        assertEquals(Set.of("market.example", "shop.example.ru", "www.shop.example.ru"), hosts);
+        assertEquals("https://shop.example.ru/success",
+                CheckoutServiceImpl.validateReturnUrl("https://shop.example.ru/success", hosts));
+    }
 }

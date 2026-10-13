@@ -74,7 +74,7 @@ final class OrderEmailTemplates {
         body.append(itemsTable(order));
         body.append(EmailLayout.infoBlock(CDEK_PVZ_LABEL, pvzHtml(order, false)));
         body.append(EmailLayout.paragraph("Доставка до&nbsp;пункта выдачи оплачивается при&nbsp;получении."));
-        body.append(EmailLayout.button("Перейти в магазин", frontUrl + "/shop/" + shop.getSlug()));
+        body.append(EmailLayout.button("Перейти в магазин", storefrontUrl(shop, frontUrl)));
         String contacts = shopContactsHtml(shop);
         if (!contacts.isEmpty()) {
             // Поддержка — отдельным блоком под чертой, как в письме anyforms
@@ -212,5 +212,11 @@ final class OrderEmailTemplates {
 
     private static String esc(String s) {
         return EmailLayout.escape(s);
+    }
+
+    /** Витрина на своём домене, если он привязан, иначе /shop/{slug} на домене платформы. */
+    static String storefrontUrl(Shop shop, String frontUrl) {
+        String domain = shop.getCustomDomain();
+        return domain == null || domain.isBlank() ? frontUrl + "/shop/" + shop.getSlug() : "https://" + domain;
     }
 }

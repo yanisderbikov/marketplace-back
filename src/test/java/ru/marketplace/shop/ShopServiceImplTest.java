@@ -31,6 +31,7 @@ import ru.marketplace.shop.dto.PublicShopCardDTO;
 import ru.marketplace.shop.dto.PublicShopDTO;
 import ru.marketplace.shop.dto.ShopCdekRequestDTO;
 import ru.marketplace.shop.dto.ShopDesignRequestDTO;
+import ru.marketplace.shop.dto.ShopDomainRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentProviderRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentRequestDTO;
 import ru.marketplace.shop.dto.ShopSettingsRequestDTO;
@@ -83,7 +84,8 @@ class ShopServiceImplTest {
     void setUp() {
         service = new ShopServiceImpl(shopRepository, shopOwnerRepository, statsRepository, currentMerchant,
                 new ShopLookup(shopRepository), secretCipher, cdekPvzLookup, cdekAuthService, yookassaClient, eventPublisher,
-                new TransactionTemplate(transactionManager), new ShopMapper(s3FileStorage));
+                new TransactionTemplate(transactionManager), new ShopMapper(s3FileStorage),
+                new ShopDomains("https://market.example"));
         when(shopRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(s3FileStorage.publicUrl(anyString())).thenAnswer(inv -> "https://s3.example/" + inv.getArgument(0));
     }
@@ -832,7 +834,7 @@ class ShopServiceImplTest {
             fields.add(it.next());
         }
         assertEquals(new TreeSet<>(Set.of(
-                "id", "slug", "name", "active", "storefrontPath",
+                "id", "slug", "name", "active", "storefrontPath", "customDomain",
                 "brandColor", "logoUrl", "heroImageUrl", "tagline", "description", "about",
                 "supportTelegram", "contactEmail", "contactPhone",
                 "sellerName", "sellerInn", "sellerOgrn", "sellerAddress",
@@ -865,5 +867,71 @@ class ShopServiceImplTest {
         JsonNode availability = new ObjectMapper().valueToTree(SlugAvailabilityDTO.rejected("Адрес занят"));
         assertEquals(false, availability.get("available").asBoolean());
         assertEquals("Адрес занят", availability.get("reason").asText());
+    }
+
+    // ---------- свой домен ----------
+
+    private static ShopDomainRequestDTO domainRequest(String domain) {
+        ShopDomainRequestDTO request = new ShopDomainRequestDTO();
+        request.setDomain(domain);
+        return request;
+    }
+
+    @Test
+    void saveDomainStoresCanonicalDomain() {
+        Shop shop = givenMerchantShop();
+        when(shopRepository.findByCustomDomain("shop.example.ru")).thenReturn(Optional.empty());
+        when(shopRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MerchantShopDTO dto = service.saveDomain(domainRequest(" https://WWW.Shop.Example.ru/catalog "));
+
+        assertEquals("shop.example.ru", shop.getCustomDomain());
+        assertEquals("shop.example.ru", dto.customDomain());
+    }
+
+    @Test
+    void saveDomainConvertsCyrillicToPunycodeAndEmptyUnbinds() {
+        Shop shop = givenMerchantShop();
+        when(shopRepository.findByCustomDomain(anyString())).thenReturn(Optional.empty());
+        when(shopRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.saveDomain(domainRequest("Магазин.рф"));
+        assertEquals("xn--80aairftm.xn--p1ai", shop.getCustomDomain());
+
+        service.saveDomain(domainRequest("  "));
+        assertNull(shop.getCustomDomain());
+    }
+
+    @Test
+    void saveDomainRejectsBadDomainsAndPlatformDomain() {
+        givenMerchantShop();
+        for (String bad : List.of("localhost", "shop..ru", "-shop.ru", "1.2.3.4", "shop.ru:8080",
+                "market.example", "candles.market.example")) {
+            assertEquals(HttpStatus.BAD_REQUEST, statusOf(() -> service.saveDomain(domainRequest(bad))), bad);
+        }
+        verify(shopRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void saveDomainTakenByAnotherShopIsConflict() {
+        givenMerchantShop();
+        Shop other = existingShop();
+        other.setId(UUID.randomUUID());
+        when(shopRepository.findByCustomDomain("shop.example.ru")).thenReturn(Optional.of(other));
+
+        assertEquals(HttpStatus.CONFLICT, statusOf(() -> service.saveDomain(domainRequest("shop.example.ru"))));
+    }
+
+    @Test
+    void resolveDomainIgnoresWwwPortAndCaseButHidesInactiveShops() {
+        Shop shop = existingShop();
+        shop.setCustomDomain("shop.example.ru");
+        when(shopRepository.findByCustomDomain("shop.example.ru")).thenReturn(Optional.of(shop));
+
+        assertEquals("candles", service.resolveDomain("WWW.Shop.Example.RU:443").slug());
+
+        shop.setActive(false);
+        assertEquals(HttpStatus.NOT_FOUND, statusOf(() -> service.resolveDomain("shop.example.ru")));
+        assertEquals(HttpStatus.NOT_FOUND, statusOf(() -> service.resolveDomain("unknown.example.ru")));
     }
 }

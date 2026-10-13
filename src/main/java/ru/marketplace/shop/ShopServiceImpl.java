@@ -24,11 +24,13 @@ import ru.marketplace.payment.YookassaClient;
 import ru.marketplace.payment.YookassaCredentials;
 import ru.marketplace.repository.ShopRepository;
 import ru.marketplace.shop.dto.CreateShopRequestDTO;
+import ru.marketplace.shop.dto.DomainResolveDTO;
 import ru.marketplace.shop.dto.MerchantShopDTO;
 import ru.marketplace.shop.dto.PublicShopCardDTO;
 import ru.marketplace.shop.dto.PublicShopDTO;
 import ru.marketplace.shop.dto.ShopCdekRequestDTO;
 import ru.marketplace.shop.dto.ShopDesignRequestDTO;
+import ru.marketplace.shop.dto.ShopDomainRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentProviderRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentRequestDTO;
 import ru.marketplace.shop.dto.ShopSettingsRequestDTO;
@@ -52,6 +54,7 @@ class ShopServiceImpl implements ShopService {
 
     static final String SLUG_TAKEN = "Адрес занят";
     static final String ALREADY_HAS_SHOP = "У вас уже есть магазин";
+    static final String DOMAIN_TAKEN = "Этот домен уже привязан к другому магазину";
 
     static final int NAME_MIN = 2;
     static final int NAME_MAX = 120;
@@ -109,6 +112,7 @@ class ShopServiceImpl implements ShopService {
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
     private final ShopMapper shopMapper;
+    private final ShopDomains shopDomains;
 
     @Override
     @Transactional
@@ -432,6 +436,45 @@ class ShopServiceImpl implements ShopService {
     @Transactional(readOnly = true)
     public PublicShopDTO getPublicShop(String slug) {
         return shopMapper.toPublic(shopLookup.activeBySlug(slug));
+    }
+
+    @Override
+    public MerchantShopDTO saveDomain(ShopDomainRequestDTO request) {
+        String domain;
+        try {
+            domain = shopDomains.normalize(request.getDomain());
+        } catch (IllegalArgumentException e) {
+            throw badRequest(e.getMessage());
+        }
+        Shop saved;
+        try {
+            // Без @Transactional на методе: нарушение UNIQUE всплывает на коммите, его надо поймать здесь
+            saved = transactionTemplate.execute(tx -> {
+                Shop shop = currentMerchant.shop();
+                if (domain != null && shopRepository.findByCustomDomain(domain)
+                        .filter(other -> !other.getId().equals(shop.getId())).isPresent()) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, DOMAIN_TAKEN);
+                }
+                shop.setCustomDomain(domain);
+                return shopRepository.saveAndFlush(shop);
+            });
+        } catch (DataIntegrityViolationException e) {
+            // Домен успели занять между проверкой и записью (custom_domain UNIQUE)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, DOMAIN_TAKEN);
+        }
+        log.info("Магазин {}: свой домен {}", saved.getSlug(), domain == null ? "отвязан" : domain);
+        return shopMapper.toMerchant(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DomainResolveDTO resolveDomain(String host) {
+        String key = ShopDomains.lookupKey(host);
+        return Optional.ofNullable(key)
+                .flatMap(shopRepository::findByCustomDomain)
+                .filter(shop -> Boolean.TRUE.equals(shop.getActive()))
+                .map(shop -> new DomainResolveDTO(shop.getSlug(), shop.getCustomDomain()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Магазин не найден"));
     }
 
     /**

@@ -15,6 +15,8 @@ public interface ShopRepository extends JpaRepository<Shop, UUID> {
 
     boolean existsBySlug(String slug);
 
+    Optional<Shop> findByCustomDomain(String customDomain);
+
     List<Shop> findAllByActiveTrueOrderByCreatedAtDesc();
 
     /** Все магазины для супер-админа, новые сверху */

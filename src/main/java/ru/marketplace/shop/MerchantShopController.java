@@ -18,6 +18,7 @@ import ru.marketplace.shop.dto.CreateShopRequestDTO;
 import ru.marketplace.shop.dto.ShopCdekRequestDTO;
 import ru.marketplace.shop.dto.MerchantShopDTO;
 import ru.marketplace.shop.dto.ShopDesignRequestDTO;
+import ru.marketplace.shop.dto.ShopDomainRequestDTO;
 import ru.marketplace.shop.dto.ShopImageRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentProviderRequestDTO;
 import ru.marketplace.shop.dto.ShopPaymentRequestDTO;
@@ -138,5 +139,14 @@ public class MerchantShopController {
     @PutMapping("/cdek")
     public ResponseEntity<MerchantShopDTO> saveCdek(@Valid @RequestBody ShopCdekRequestDTO request) {
         return ResponseEntity.ok(shopService.saveCdek(request));
+    }
+
+    @Operation(summary = "Привязать свой домен витрины",
+            description = "Витрина откроется на домене с корня, когда его DNS будет указывать на гейтвей платформы. "
+                    + "Пусто — отвязать. 400 — некорректный домен или домен платформы, 409 — домен у другого магазина",
+            security = @SecurityRequirement(name = "Bearer"))
+    @PutMapping("/domain")
+    public ResponseEntity<MerchantShopDTO> saveDomain(@Valid @RequestBody ShopDomainRequestDTO request) {
+        return ResponseEntity.ok(shopService.saveDomain(request));
     }
 }

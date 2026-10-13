@@ -30,6 +30,7 @@ public class ShopMapper {
                 .name(shop.getName())
                 .active(Boolean.TRUE.equals(shop.getActive()))
                 .storefrontPath(STOREFRONT_PATH_PREFIX + shop.getSlug())
+                .customDomain(shop.getCustomDomain())
                 .brandColor(shop.getBrandColor())
                 .logoUrl(s3FileStorage.publicUrl(shop.getLogoKey()))
                 .heroImageUrl(s3FileStorage.publicUrl(shop.getHeroImageKey()))

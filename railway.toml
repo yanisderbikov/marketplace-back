@@ -1,0 +1,10 @@
+# Railway: сборка по Dockerfile. Сервис приватный — снаружи до него ходит только гейтвей
+# (back.railway.internal:8090). Переменные окружения — см. .env.example.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/actuator/health"
+healthcheckTimeout = 180
+restartPolicyType = "ON_FAILURE"

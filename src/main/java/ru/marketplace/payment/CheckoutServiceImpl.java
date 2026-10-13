@@ -50,6 +50,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -268,7 +269,7 @@ class CheckoutServiceImpl implements CheckoutService {
         if (!Boolean.TRUE.equals(request.getAcceptTerms())) {
             throw badRequest("Нужно согласиться с офертой и политикой конфиденциальности");
         }
-        String returnUrl = validateReturnUrl(request.getReturnUrl(), allowedReturnHosts);
+        String returnUrl = validateReturnUrl(request.getReturnUrl(), returnHosts(allowedReturnHosts, shop));
         String fullName = requireText(request.getFullName(), "Укажите ФИО");
         String email = requireText(request.getEmail(), "Укажите почту");
         // acceptsOrders выше гарантирует, что провайдер есть и подключён
@@ -523,6 +524,18 @@ class CheckoutServiceImpl implements CheckoutService {
             throw badRequest(BAD_RETURN_URL);
         }
         return url;
+    }
+
+    /** Хосты платформы плюс свой домен магазина (и его www): витрина на своём домене возвращает покупателя туда же. */
+    static Set<String> returnHosts(Set<String> platformHosts, Shop shop) {
+        String domain = shop.getCustomDomain();
+        if (domain == null || domain.isBlank()) {
+            return platformHosts;
+        }
+        Set<String> hosts = new HashSet<>(platformHosts);
+        hosts.add(domain);
+        hosts.add("www." + domain);
+        return hosts;
     }
 
     static Set<String> parseHosts(String hosts) {

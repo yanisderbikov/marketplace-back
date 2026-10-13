@@ -45,6 +45,13 @@ public class Shop {
     @Column(nullable = false, length = 120)
     private String name;
 
+    /**
+     * Свой домен витрины (punycode, нижний регистр, без www) — витрина открывается на нём с корня.
+     * null — только /shop/{slug} на домене платформы
+     */
+    @Column(name = "custom_domain", unique = true, length = 253)
+    private String customDomain;
+
     /** Выключенный супер-админом магазин: витрина 404, оформление заказа 409 */
     @Column(nullable = false)
     private Boolean active;
