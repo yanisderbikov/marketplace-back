@@ -46,6 +46,7 @@ public class RailwayDomainProvisioner implements DomainProvisioner {
             """.formatted(STATUS_FIELDS);
     private static final String DELETE = "mutation($id: String!) { customDomainDelete(id: $id) }";
 
+    /** null — токен не задан: магазины и витрины работают, а подключение доменов отвечает 502 до появления токена */
     private final WebClient webClient;
     private final String projectId;
     private final String environmentId;
@@ -63,9 +64,15 @@ public class RailwayDomainProvisioner implements DomainProvisioner {
         this.environmentId = require(environmentId, "RAILWAY_ENVIRONMENT_ID");
         this.serviceId = require(serviceId, "RAILWAY_GATEWAY_SERVICE_ID");
         this.targetPort = Integer.parseInt(require(targetPort, "RAILWAY_GATEWAY_PORT"));
-        String secret = require(token, "RAILWAY_API_TOKEN");
         // Токен проекта идёт своим заголовком, токен аккаунта/воркспейса — Bearer
         String kind = require(tokenKind, "RAILWAY_API_TOKEN_KIND").toLowerCase(Locale.ROOT);
+        if (token == null || token.isBlank()) {
+            // Без токена не роняем весь бэкенд: свой домен — необязательная функция кабинета
+            log.error("RAILWAY_API_TOKEN не задан: свои домены витрин подключить нельзя, пока его не добавят");
+            this.webClient = null;
+            return;
+        }
+        String secret = token.trim();
         WebClient.Builder builder = WebClient.builder()
                 .baseUrl(apiUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
@@ -122,6 +129,9 @@ public class RailwayDomainProvisioner implements DomainProvisioner {
     }
 
     private JsonNode call(String query, Map<String, Object> variables) {
+        if (webClient == null) {
+            throw new DomainProvisioningException("RAILWAY_API_TOKEN не задан");
+        }
         JsonNode response;
         try {
             response = webClient.post()
