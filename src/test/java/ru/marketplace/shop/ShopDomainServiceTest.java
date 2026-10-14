@@ -90,6 +90,18 @@ class ShopDomainServiceTest {
     }
 
     @Test
+    void unbindClearsDomainAndDetachesItFromGateway() {
+        shop.setCustomDomain("shop.example.ru");
+
+        assertEquals(ShopDomainDTO.NONE, service.unbind().status());
+        assertNull(shop.getCustomDomain());
+        verify(provisioner).detach("shop.example.ru");
+
+        service.unbind();
+        verify(provisioner, never()).detach(null);
+    }
+
+    @Test
     void rejectsBadDomainsAndPlatformDomain() {
         for (String bad : List.of("localhost", "shop..ru", "-shop.ru", "1.2.3.4", "shop.ru:8080",
                 "market.example", "candles.market.example")) {

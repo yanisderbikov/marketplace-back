@@ -78,6 +78,14 @@ public class ShopDomainService {
         return dns;
     }
 
+    /**
+     * Отвязать домен: витрина остаётся на адресе платформы, домен отключаем от гейтвея.
+     * Домена нет — ничего не делаем.
+     */
+    public ShopDomainDTO unbind() {
+        return save(null);
+    }
+
     /** Домен магазина и его DNS-записи со статусом; внешний API не ответил — ERROR с пояснением. */
     public ShopDomainDTO describe() {
         String domain = transactionTemplate.execute(tx -> currentMerchant.shop().getCustomDomain());

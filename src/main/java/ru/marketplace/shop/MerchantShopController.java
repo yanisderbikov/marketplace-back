@@ -154,6 +154,15 @@ public class MerchantShopController {
         return ResponseEntity.ok(shopDomainService.save(request.getDomain()));
     }
 
+    @Operation(summary = "Отвязать свой домен витрины",
+            description = "Витрина остаётся доступна по адресу на платформе, домен отключается от гейтвея. "
+                    + "Домен не привязан — не ошибка. В ответе status NONE",
+            security = @SecurityRequirement(name = "Bearer"))
+    @DeleteMapping("/domain")
+    public ResponseEntity<ShopDomainDTO> deleteDomain() {
+        return ResponseEntity.ok(shopDomainService.unbind());
+    }
+
     @Operation(summary = "Свой домен витрины: DNS-записи и статус",
             description = "Что добавить у регистратора и видны ли уже записи; status NONE — домен не привязан",
             security = @SecurityRequirement(name = "Bearer"))
