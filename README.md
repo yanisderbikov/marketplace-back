@@ -48,8 +48,8 @@ Docker-образ: `docker build -t marketplace-back .` (сборка внутр
 (`marketplace-gateway`, репозиторий `marketplace-getaway`), который отдаёт ему `/api/*` любого хоста —
 домена платформы и своих доменов магазинов. Railway: сборка и healthcheck — в `railway.toml`,
 приватный адрес `back.railway.internal:8090`. Прод (свой сервер): push в `main` → `.github/workflows/deploy.yml`
-собирает образ в GHCR и по SSH перезапускает контейнер `marketplace-back` с `/etc/marketplace/back.env`;
-подробности — README гейтвея.
+собирает образ в GHCR, сервер сам раз в минуту подтягивает новый образ и перекатывает контейнер
+`marketplace-back` с `/etc/marketplace/back.env`; подробности — README гейтвея.
 
 За гейтвеем фронт и API на одном origin, поэтому `ALLOWED_ORIGINS` нужен только для CORS бакета S3
 (загрузка картинок из кабинета) — это домен платформы. Возврат покупателя после оплаты разрешён на хосты
